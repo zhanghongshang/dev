@@ -1,0 +1,5 @@
+/water-diversion-api/target/
+/water-diversion-client/target/
+/water-diversion-provider/target/
+/.idea/
+/log/
