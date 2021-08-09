@@ -1,15 +1,12 @@
 package com.nari.slsd.msrv.waterdiversion.model.po;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * @description: 数据库实体类
@@ -17,21 +14,32 @@ import java.time.LocalDateTime;
  * @date: 2021/4/1 15:55
  * @return:
  */
-@Entity
-@Table(name ="demo")
-@Getter
-@Setter
-@ToString
+@TableName(value = "DEMO")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Demo implements Serializable {
 
-    @Id
-    @Column
+    @TableId(type= IdType.ASSIGN_ID)
     private Long id;
 
     private Integer age;
 
     private String name;
 
-    private LocalDateTime date;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Date date;
+
+    /**
+     * 乐观锁
+     */
+    @Version
+    private Integer version;
+
+    /**
+     * 逻辑删除
+     */
+    @TableLogic
+    private Integer deleted;
 
 }

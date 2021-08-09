@@ -39,7 +39,7 @@ public class DemoController {
         return "success";
     }
     @GetMapping(value = "/{id}")
-    public DemoVO findById(@PathVariable("id") String id) {
+    public DemoVO findById(@PathVariable("id") Long id) {
         return demoService.findById (id);
     }
     @GetMapping(value = "/page")

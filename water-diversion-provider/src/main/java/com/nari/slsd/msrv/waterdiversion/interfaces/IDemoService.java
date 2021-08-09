@@ -3,6 +3,7 @@ package com.nari.slsd.msrv.waterdiversion.interfaces;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.nari.slsd.msrv.common.model.DataTableVO;
 import com.nari.slsd.msrv.common.model.PageModel;
 import com.nari.slsd.msrv.waterdiversion.model.dto.DemoDTO;
@@ -18,11 +19,11 @@ import java.util.List;
  * @date:
  * @return:
  */
-public interface IDemoService{
+public interface IDemoService extends IService<Demo> {
     void save(DemoDTO demoDTO);
     void update(DemoDTO demoDTO);
     void delete(String id);
-    DemoVO findById(String id);
+    DemoVO findById(Long id);
     DataTableVO selectPage(PageModel pageModel);
     void batchInsert(List<Demo> beanList);
 }

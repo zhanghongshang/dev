@@ -1,5 +1,6 @@
 package com.nari.slsd.msrv.waterdiversion.model.vo;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,8 +13,7 @@ import lombok.Setter;
  * @Version: 1.0
  * @Remark:
  **/
-@Getter
-@Setter
+@Data
 public class DemoVO {
 
     private String id; //XX id

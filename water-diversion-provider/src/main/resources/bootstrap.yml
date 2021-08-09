@@ -6,16 +6,16 @@ spring:
   application:
     name: water-diversion
   profiles:
-    active: sqlserver-dev
-  cloud:
-    nacos:
-      discovery:
-        server-addr: 127.0.0.1:8848
-      config:
-        #server-addr: 127.0.0.1:8848
-        #file-extension: yml
-        refresh:
-          enabled: true
+    active: dm-dev
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: 127.0.0.1:8849
+#      config:
+#        server-addr: 127.0.0.1:8849
+#        file-extension: yml
+#        refresh:
+#          enabled: true
 
 
 
