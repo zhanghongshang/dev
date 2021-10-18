@@ -1,6 +1,6 @@
 package com.nari.slsd.msrv.waterdiversion.mapper.primary;
 
-import com.nari.slsd.msrv.waterdiversion.model.po.WrDiversionPort;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrDiversionPort;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.springframework.stereotype.Repository;
 

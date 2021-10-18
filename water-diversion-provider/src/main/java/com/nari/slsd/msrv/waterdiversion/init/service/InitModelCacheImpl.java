@@ -10,10 +10,11 @@ import org.springframework.stereotype.Service;
 
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @ClassName: InitModelCacheImpl
- * @Description: TODO
+ * @Description: 模型缓存初始化实现
  * @Author: sk
  * @Date: 2020/8/4 20:36
  * @Version: 1.0
@@ -37,7 +38,7 @@ public class InitModelCacheImpl implements IInitModelCache {
         if (CollectionUtils.isEmpty(nodeList)) {
             return;
         }
-        nodeList.stream().filter(node -> node != null)
+        nodeList.stream().filter(Objects::nonNull)
                 .forEach(node -> {
                     cacheService.setWaterUseUnitTree(node.getId(), node);
                 });
@@ -51,7 +52,7 @@ public class InitModelCacheImpl implements IInitModelCache {
         if (CollectionUtils.isEmpty(nodeList)) {
             return;
         }
-        nodeList.stream().filter(node -> node != null)
+        nodeList.stream().filter(Objects::nonNull)
                 .forEach(node -> {
                     cacheService.setWaterUseUnitTree(node.getId(), node);
                 });

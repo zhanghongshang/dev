@@ -31,12 +31,14 @@
         <msrv-common.version>0.0.1-SNAPSHOT</msrv-common.version>
         <mybatis-plus.version>3.4.3</mybatis-plus.version>
         <oracle.version>11.2.0.1</oracle.version>
-        <poi.version>3.9</poi.version>
+        <!--<poi.version>3.9</poi.version>-->
         <skipTests>true</skipTests>
         <commons-pool2.version>2.5.0</commons-pool2.version>
         <jackson-databind.version>2.9.7</jackson-databind.version>
         <jedis.version>3.1.0</jedis.version>
         <swagger-spring-boot-starter.version>1.6.0.RELEASE</swagger-spring-boot-starter.version>
+        <hutool-all.version>5.7.5</hutool-all.version>
+        <easyexcel.version>2.2.10</easyexcel.version>
     </properties>
     <modules>
         <module>water-diversion-api</module>
@@ -115,6 +117,17 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <version>${spring-boot.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>${hutool-all.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
         </dependency>
     </dependencies>
 
@@ -304,7 +317,7 @@
                 <version>${junit.version}</version>
             </dependency>
 
-            <dependency>
+            <!--<dependency>
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi</artifactId>
                 <version>${poi.version}</version>
@@ -313,8 +326,19 @@
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-ooxml</artifactId>
                 <version>${poi.version}</version>
+            </dependency>-->
+
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool-all.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>easyexcel</artifactId>
+                <version>${easyexcel.version}</version>
+            </dependency>
         </dependencies>
 
     </dependencyManagement>

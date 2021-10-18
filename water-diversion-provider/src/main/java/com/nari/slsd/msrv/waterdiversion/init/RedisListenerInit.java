@@ -1,6 +1,7 @@
 package com.nari.slsd.msrv.waterdiversion.init;
 
 import com.nari.slsd.msrv.waterdiversion.init.interfaces.IInitModelCache;
+import com.nari.slsd.msrv.waterdiversion.utils.ApplicationContextUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
@@ -20,5 +21,6 @@ public class RedisListenerInit implements ApplicationListener<ContextRefreshedEv
             IInitModelCache modelCache = (IInitModelCache)event.getApplicationContext().getBean("initModelCacheImpl");
             modelCache.initWaterUseUnitTree ();
         }
+        ApplicationContextUtils.setContext(event.getApplicationContext());
     }
 }

@@ -9,8 +9,8 @@ import java.util.List;
 
 /**
  * @ClassName: WaterUseUnitNode
- * @Description: TODO
- * @Author: sk
+ * @Description: 用水单位树节点
+ * @Author: reset kalar
  * @Date: 2020/8/4 19:55
  * @Version: 1.0
  * @Remark:
@@ -43,6 +43,18 @@ public class WrUseUnitNode {
      * 是否为叶节点
      */
     private Boolean isLeaf = false;
+
+
+    /**
+     * 层级
+     */
+    private Integer level;
+
+    /**
+     * 全路径
+     */
+    private String path;
+
 
     /**
      * 标识是否为叶子节点 false标识不是叶子节点（底下还有子节点） true标识是叶子节点（底下没有子节点）

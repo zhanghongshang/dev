@@ -57,6 +57,15 @@ public class WrUseUnitManagerVO {
      */
     private String code;
 
+
+    /**
+     * 创建人
+     */
+    private List<PersonTransDTO> creatorList;
+    /**
+     * 负责人
+     */
+    private List<PersonTransDTO> managerList;
     /**
      * 用水单位人员
      */
@@ -64,6 +73,8 @@ public class WrUseUnitManagerVO {
 
 
     public WrUseUnitManagerVO() {
+        this.creatorList = new ArrayList<>();
+        this.managerList = new ArrayList<>();
         this.personList = new ArrayList<>();
     }
 

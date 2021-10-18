@@ -1,10 +1,10 @@
 package com.nari.slsd.msrv.waterdiversion.init.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.nari.slsd.msrv.common.utils.StringUtils;
+import com.nari.slsd.msrv.waterdiversion.commons.TreeEnum;
 import com.nari.slsd.msrv.waterdiversion.init.interfaces.IInitModelService;
-import com.nari.slsd.msrv.waterdiversion.mapper.primary.WrUseUnitManagerMapper;
-import com.nari.slsd.msrv.waterdiversion.model.po.WrUseUnitManager;
+import com.nari.slsd.msrv.waterdiversion.interfaces.IWrUseUnitManagerService;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrUseUnitManager;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -17,28 +17,27 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * @ClassName: InitModelServiceImpl
- * @Description: TODO
- * @Author: sk
- * @Date: 2020/8/4 20:14
- * @Version: 1.0
- * @Remark:
- **/
+ * <p>
+ * 模型初始化服务
+ * </p>
+ *
+ * @author reset kalar
+ * @since 2021-07-29
+ */
 @Service
 @Slf4j
 public class InitModelServiceImpl implements IInitModelService {
 
     @Resource
-    WrUseUnitManagerMapper managerMapper;
+    IWrUseUnitManagerService wrUseUnitManagerService;
 
     @Override
     public List<WrUseUnitNode> createTree() {
-        /**
-         * 获取PID为-1的用水单位，是树模型的第一层
-         */
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper<>();
-        wrapper.eq("PID", "-1");
-        List<WrUseUnitManager> managerList = managerMapper.selectList(wrapper);
+        //获取PID为-1的用水单位，是树模型的第一层
+        List<WrUseUnitManager> managerList = wrUseUnitManagerService.lambdaQuery()
+                .eq(WrUseUnitManager::getPid, TreeEnum.WR_USE_UNIT_ROOT_PID)
+                .list();
+
         return createTree(managerList);
     }
 
@@ -47,9 +46,9 @@ public class InitModelServiceImpl implements IInitModelService {
         if (CollectionUtils.isEmpty(nodeIds)) {
             return null;
         }
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper<>();
-        wrapper.in("PID", nodeIds);
-        List<WrUseUnitManager> managerList = managerMapper.selectList(wrapper);
+        List<WrUseUnitManager> managerList = wrUseUnitManagerService.lambdaQuery()
+                .in(WrUseUnitManager::getPid, nodeIds)
+                .list();
 
         return createTree(managerList);
     }
@@ -59,7 +58,7 @@ public class InitModelServiceImpl implements IInitModelService {
         if (StringUtils.isEmpty(nodeId)) {
             return null;
         }
-        WrUseUnitManager manager = managerMapper.selectById(nodeId);
+        WrUseUnitManager manager = wrUseUnitManagerService.getById(nodeId);
         WrUseUnitNode node = convertNode(manager);
         node.setChildren(getChildren(manager.getId()));
         return node;
@@ -78,10 +77,8 @@ public class InitModelServiceImpl implements IInitModelService {
         if (CollectionUtils.isEmpty(managerList)) {
             return null;
         }
-        managerList.stream().forEach(manager -> {
-            /**
-             * 用水单位转节点
-             */
+        managerList.forEach(manager -> {
+            //用水单位转节点
             WrUseUnitNode node = convertNode(manager);
             node.setChildren(getChildren(manager.getId()));
             nodeList.add(node);
@@ -94,20 +91,19 @@ public class InitModelServiceImpl implements IInitModelService {
      */
     public List<WrUseUnitNode> getChildren(String pid) {
 
-        List<WrUseUnitNode> nodeList = new ArrayList<>();
-        /**
-         * 查找子节点
-         */
+        List<WrUseUnitNode> nodeList;
+        //查找子节点
         //如果为空直接返回
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper<>();
-        wrapper.eq("PID", pid);
-        List<WrUseUnitManager> managerList = managerMapper.selectList(wrapper);
+        List<WrUseUnitManager> managerList = wrUseUnitManagerService.lambdaQuery()
+                .eq(WrUseUnitManager::getPid, pid)
+                .list();
         if (CollectionUtils.isEmpty(managerList)) {
             return null;
         }
         nodeList = convertNodeList(managerList);
 
-        nodeList.stream().forEach(chNode -> {
+        assert nodeList != null;
+        nodeList.forEach(chNode -> {
             List<WrUseUnitNode> chNodeList = getChildren(chNode.getId());
             chNode.setChildren(chNodeList);
         });
@@ -120,6 +116,8 @@ public class InitModelServiceImpl implements IInitModelService {
         node.setId(manager.getId());
         node.setName(manager.getUnitName());
         node.setPid(manager.getPid());
+        node.setLevel(manager.getUnitLevel());
+        node.setPath(manager.getPath());
         return node;
     }
 
@@ -128,9 +126,7 @@ public class InitModelServiceImpl implements IInitModelService {
         if (CollectionUtils.isEmpty(managerList)) {
             return null;
         }
-        managerList.stream().forEach(manager -> {
-            nodeList.add(convertNode(manager));
-        });
+        managerList.forEach(manager -> nodeList.add(convertNode(manager)));
         return nodeList;
     }
 }

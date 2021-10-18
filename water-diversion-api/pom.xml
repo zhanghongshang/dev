@@ -22,6 +22,7 @@
 	<msrv-common.version>0.0.1-SNAPSHOT</msrv-common.version>
     <lombok.version>1.16.22</lombok.version>
     <javax-servlet.version>3.1.0</javax-servlet.version>
+    <easyexcel.version>2.2.10</easyexcel.version>
   </properties>
 
   <dependencies>
@@ -56,6 +57,11 @@
       <optional>true</optional>
     </dependency>
 
+    <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>easyexcel</artifactId>
+      <version>${easyexcel.version}</version>
+    </dependency>
   </dependencies>
 
   <build>

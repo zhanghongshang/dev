@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * @ClassName: IInitModelCache
- * @Description: TODO
+ * @Description: 模型缓存初始化
  * @Author: sk
  * @Date: 2020/8/4 19:32
  * @Version: 1.0

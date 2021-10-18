@@ -1,8 +1,6 @@
 package com.nari.slsd.msrv.waterdiversion.model.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * @Program: water-diversion
@@ -11,15 +9,7 @@ import lombok.NoArgsConstructor;
  * @Date: 2021-08-03 12:01
  **/
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PersonTransDTO {
-
-//    /**
-//     * ID
-//     */
-//    private String Id;
-
     /**
      * 人员ID
      */
@@ -32,10 +22,24 @@ public class PersonTransDTO {
      * 3.用水单位人员
      */
     private Integer userType;
-//
-//    /**
-//     * 人员名称
-//     */
-//    private String userName;
+
+    /**
+     * 人员名称
+     */
+    private String userName;
+
+    public PersonTransDTO() {
+    }
+
+    public PersonTransDTO(String userId, Integer userType) {
+        this.userId = userId;
+        this.userType = userType;
+    }
+
+    public PersonTransDTO(String userId, Integer userType, String userName) {
+        this.userId = userId;
+        this.userType = userType;
+        this.userName = userName;
+    }
 
 }

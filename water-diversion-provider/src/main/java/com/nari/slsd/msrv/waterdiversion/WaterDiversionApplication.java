@@ -1,8 +1,13 @@
 package com.nari.slsd.msrv.waterdiversion;
 
+import com.github.jeffreyning.mybatisplus.conf.EnableKeyGen;
+import com.github.jeffreyning.mybatisplus.conf.EnableMPP;
 import com.nari.slsd.msrv.waterdiversion.init.RedisListenerInit;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ComponentScan;
 
 
 /**
@@ -16,10 +21,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 //@EnableSwagger2
 //@EnableTransactionManagement(proxyTargetClass = true)
 //@EnableConfigurationProperties
-//@EnableFeignClients(basePackages = {"hd.msrv"})//启动服务发现
+@EnableFeignClients(basePackages = {"com.nari.slsd.permission.**","com.nari"})//启动服务发现
 //@EnableDiscoveryClient//服务注册
 @SpringBootApplication//核心注解
-//@ComponentScan(basePackages = {"com.nari"})
+@ComponentScan(basePackages = {"com.nari.slsd.permission.**","com.nari"})
+@EnableMPP//启用mpp
+@EnableKeyGen//启用主键自定义主键填充功能
 public class WaterDiversionApplication {
 
     public static void main(String[] args) {
@@ -27,5 +34,4 @@ public class WaterDiversionApplication {
         springApplication.addListeners(new RedisListenerInit());
         springApplication.run(args);
     }
-
 }

@@ -16,9 +16,14 @@ import lombok.NoArgsConstructor;
 public class WrBuildingAndDiversion {
 
     /**
-     * 水工建筑物编号
+     * 水工建筑物ID
      */
     private String id;
+
+    /**
+     * 测站编码
+     */
+    private String buildingCode;
 
     /**
      * 水工建筑物名称
@@ -26,9 +31,24 @@ public class WrBuildingAndDiversion {
     private String buildingName;
 
     /**
+     * 所属用水单位ID
+     */
+    private String waterUnitId;
+
+    /**
+     * 所属用水单位名称
+     */
+    private String waterUnitName;
+
+    /**
      * 水工建筑物类型
      */
     private String buildingType;
+
+    /**
+     * 是否填报
+     */
+    private Integer fillReport;
 
     /**
      * 站点属性
@@ -37,20 +57,20 @@ public class WrBuildingAndDiversion {
 
     /**
      * 采集方式
-     * 1.人工
-     * 2.自动
+     * 0.人工
+     * 1.自动
      */
     private Integer collectType;
 
     /**
-     * 经度
+     * GIS坐标 [经度,纬度]
      */
-    private String longitude;
+    private String latlngF;
 
     /**
-     * 纬度
+     * 拓扑坐标 [经度,纬度]
      */
-    private String latitude;
+    private String latlngS;
 
     /**
      * 是否为生态用水
@@ -58,9 +78,10 @@ public class WrBuildingAndDiversion {
     private Integer ifEcological;
 
     /**
-     * 所属用水单位编码
+     * 备注
      */
-    private String waterUnitId;
+    private String remark;
+
 
     /**
      * 所属管理单位id
@@ -68,9 +89,64 @@ public class WrBuildingAndDiversion {
     private String mngUnitId;
 
     /**
-     * 备注
+     * 所属管理单位名称
      */
-    private String remark;
+    private String mngUnitName;
+
+    /**
+     * 公摊系数
+     */
+    private Double shareFactor;
+
+    /**
+     * 用水性质
+     */
+    private Integer waterNature;
+
+    /**
+     * 是否长期
+     */
+    private Integer ifLongTerm;
+
+    /**
+     * 是否可远控
+     * 0否(默认)
+     * 1是
+     */
+    private Integer ifRemoteControl;
+
+    /**
+     * 费率管理
+     */
+    private Double rateManager;
+
+    /**
+     * 引水口层级
+     * 1 一级
+     * 2 二级
+     */
+    private Integer buildingLevel;
+
+    /**
+     * 是否为公共引水口
+     * 0 否
+     * 1 是
+     */
+    private Integer ifPublic;
+
+    /**
+     * 上级引水口
+     */
+    private String pid;
 
 
+    /**
+     * 上级引水口code
+     */
+    private String pCode;
+
+    /**
+     *上级引水口名称
+     */
+    private String pName;
 }

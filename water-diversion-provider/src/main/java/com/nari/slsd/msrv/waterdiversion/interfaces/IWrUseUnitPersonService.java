@@ -1,6 +1,6 @@
 package com.nari.slsd.msrv.waterdiversion.interfaces;
 
-import com.nari.slsd.msrv.waterdiversion.model.po.WrUseUnitPerson;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrUseUnitPerson;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

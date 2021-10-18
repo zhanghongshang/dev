@@ -31,9 +31,19 @@ public class WrUseUnitPersonVO {
     private String unitId;
 
     /**
+     * 用水单位名称
+     */
+    private String unitName;
+
+    /**
      * 人员ID
      */
     private String userId;
+
+    /**
+     * 人员名称
+     */
+    private String userName;
 
     /**
      * 人员类型

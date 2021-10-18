@@ -2,7 +2,7 @@ package com.nari.slsd.msrv.waterdiversion.interfaces;
 
 import com.nari.slsd.msrv.common.model.DataTableVO;
 import com.nari.slsd.msrv.waterdiversion.model.dto.WrUseUnitManagerDTO;
-import com.nari.slsd.msrv.waterdiversion.model.po.WrUseUnitManager;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrUseUnitManager;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitManagerVO;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitNode;
@@ -24,7 +24,7 @@ public interface IWrUseUnitManagerService extends IService<WrUseUnitManager> {
      *
      * @param dto
      */
-    void addWaterUseUnit(WrUseUnitManagerDTO dto);
+    void saveWaterUseUnit(WrUseUnitManagerDTO dto);
 
     /**
      * 修改用水单位信息
@@ -50,15 +50,24 @@ public interface IWrUseUnitManagerService extends IService<WrUseUnitManager> {
 
 
     /**
+     * 根据一批用水单位id获取用水单位信息
+     *
+     * @param   unitIds
+     * @return
+     */
+    List<WrUseUnitManagerVO> getWaterUseUnitList(List<String> unitIds);
+
+
+    /**
      * 按条件分页查询用水单位信息
      *
-     * @param start  页码
-     * @param length 页面长度
+     * @param pageIndex  页码
+     * @param pageSize 页面长度
      * @param pid    上级用水单位ID
      * @param state  状态
      * @return
      */
-    DataTableVO getWaterUseUnitPage(Integer start, Integer length, String pid, Integer state);
+    DataTableVO getWaterUseUnitPage(Integer pageIndex, Integer pageSize, String pid, Integer state);
 
 
     /**
@@ -74,7 +83,7 @@ public interface IWrUseUnitManagerService extends IService<WrUseUnitManager> {
      *
      * @return
      */
-    List<WrUseUnitNode> getAllTreeFromCacheByIds();
+    List<WrUseUnitNode> getAllTreeFromCache();
 
     /**
      * 获取子节点ID
@@ -101,4 +110,13 @@ public interface IWrUseUnitManagerService extends IService<WrUseUnitManager> {
      * @return
      */
     Boolean checkUniqueCode(String code);
+
+
+    /**
+     * 获取一级节点
+     * @param po
+     * @return
+     */
+    String getRootId(WrUseUnitManager po);
+
 }

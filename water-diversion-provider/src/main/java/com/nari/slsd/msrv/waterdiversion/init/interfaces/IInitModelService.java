@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * @ClassName: IInitModelService
- * @Description: TODO
+ * @Description: 模型初始化
  * @Author: sk
  * @Date: 2020/8/4 19:29
  * @Version: 1.0

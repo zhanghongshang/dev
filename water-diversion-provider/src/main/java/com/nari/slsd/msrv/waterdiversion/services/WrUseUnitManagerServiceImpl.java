@@ -1,6 +1,5 @@
 package com.nari.slsd.msrv.waterdiversion.services;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.nari.slsd.msrv.common.model.DataTableVO;
@@ -8,22 +7,24 @@ import com.nari.slsd.msrv.common.utils.DateUtils;
 import com.nari.slsd.msrv.common.utils.IDGenerator;
 import com.nari.slsd.msrv.common.utils.StringUtils;
 import com.nari.slsd.msrv.waterdiversion.cache.interfaces.IModelCacheService;
-import com.nari.slsd.msrv.waterdiversion.init.service.InitModelCacheImpl;
+import com.nari.slsd.msrv.waterdiversion.commons.TreeEnum;
+import com.nari.slsd.msrv.waterdiversion.commons.WrUseUnitEnum;
+import com.nari.slsd.msrv.waterdiversion.init.interfaces.IInitModelCache;
+import com.nari.slsd.msrv.waterdiversion.interfaces.IWrUseUnitPersonService;
 import com.nari.slsd.msrv.waterdiversion.model.dto.PersonTransDTO;
+import com.nari.slsd.msrv.waterdiversion.model.dto.PersonTransKey;
 import com.nari.slsd.msrv.waterdiversion.model.dto.WrUseUnitManagerDTO;
-import com.nari.slsd.msrv.waterdiversion.model.po.WrUseUnitManager;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrUseUnitManager;
 import com.nari.slsd.msrv.waterdiversion.mapper.primary.WrUseUnitManagerMapper;
 import com.nari.slsd.msrv.waterdiversion.interfaces.IWrUseUnitManagerService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.nari.slsd.msrv.waterdiversion.model.po.WrUseUnitPerson;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrUseUnitPerson;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitManagerVO;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
@@ -46,37 +47,31 @@ import java.util.stream.Collectors;
 public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMapper, WrUseUnitManager> implements IWrUseUnitManagerService {
 
     @Resource
-    WrUseUnitPersonServiceImpl personService;
+    IWrUseUnitPersonService personService;
 
     @Resource
     IModelCacheService cacheService;
 
     @Resource
-    InitModelCacheImpl initModelCache;
+    IInitModelCache initModelCache;
 
     @Resource
     TransactionTemplate transactionTemplate;
 
     @Override
-    public void addWaterUseUnit(WrUseUnitManagerDTO dto) {
-        /**
-         * 新增时要先新增数据库记录再生成缓存
-         *
-         * 新增用水单位和人员
-         *
-         * Transactional注解内部调用不走代理，不生效，所以手动启用事务
-         */
-        WrUseUnitManager po = transactionTemplate.execute(transactionStatus -> addOneWaterUseUnit(dto));
+    public void saveWaterUseUnit(WrUseUnitManagerDTO dto) {
+        //新增时要先新增数据库记录再生成缓存
+        //新增用水单位和人员
+        //Transactional注解内部调用不走代理，不生效，所以手动启用事务
+        WrUseUnitManager po = transactionTemplate.execute(transactionStatus -> saveOneWaterUseUnit(dto));
 
-        /**
-         * 修改Redis缓存的树模型
-         * 如果PID为-1 是新的树，直接存入redis
-         * 如果PID不为-1 向上找到根节点，修改树结构
-         */
-        if (dto.getPid().equals("-1")) {
+        //修改Redis缓存的树模型
+        //如果PID为-1 是新的树，直接存入redis
+        //如果PID不为-1 向上找到根节点，修改树结构
+        if (dto.getPid().equals(TreeEnum.WR_USE_UNIT_ROOT_PID)) {
             initModelCache.updateWaterUseUnitTree(po.getId());
         } else {
-            String rootId = getRootId(po.getId());
+            String rootId = getRootId(po);
             initModelCache.updateWaterUseUnitTree(rootId);
         }
     }
@@ -89,37 +84,92 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
      * @return
      */
     @Transactional(rollbackFor = {Exception.class})
-    public WrUseUnitManager addOneWaterUseUnit(WrUseUnitManagerDTO dto) {
-        /**
-         * 用水单位dto转po 入数据库
-         */
+    public WrUseUnitManager saveOneWaterUseUnit(WrUseUnitManagerDTO dto) {
+        //用水单位dto转po 入数据库
         WrUseUnitManager po = convert2DO(dto);
+        //增加层级和路径
+        //如果是一级节点 节点层级为1 路径为 id
+        //不是一级节点 找他的父节点 层级+1 路径拼接pid/id
+        if (po.getPid().equals(TreeEnum.WR_USE_UNIT_ROOT_PID)) {
+            po.setUnitLevel(1);
+            po.setPath(po.getId());
+        } else {
+            WrUseUnitManager parent = getById(po.getPid());
+            Integer pLevel = parent.getUnitLevel();
+            String pPath = parent.getPath();
+            StringBuffer sb = new StringBuffer(pPath);
+            sb.append("/").append(po.getId());
+            po.setUnitLevel(pLevel + 1);
+            po.setPath(sb.toString());
+        }
         baseMapper.insert(po);
-        /**
-         * 如果用水单位的人员列表不为空，将人员存入用水单位人员表
-         */
+        //如果用水单位的人员列表不为空，将人员存入用水单位人员表
+        List<PersonTransDTO> creatorDTOList = dto.getCreatorList();
+        List<PersonTransDTO> managerDTOList = dto.getManagerList();
         List<PersonTransDTO> personDTOList = dto.getPersonList();
 
+        List<WrUseUnitPerson> allPersonList = new ArrayList<>();
+
+        if (creatorDTOList != null && creatorDTOList.size() != 0) {
+            String unitId = po.getId();
+            creatorDTOList.forEach(creatorDTO -> {
+                WrUseUnitPerson person = new WrUseUnitPerson();
+                person.setId(IDGenerator.getId());
+                person.setUserId(creatorDTO.getUserId());
+                if (creatorDTO.getUserType() != null) {
+                    person.setUserType(creatorDTO.getUserType());
+                } else {
+                    person.setUserType(WrUseUnitEnum.USER_TYPE_CREATOR);
+                }
+                person.setUnitId(unitId);
+                allPersonList.add(person);
+            });
+        }
+        if (managerDTOList != null && managerDTOList.size() != 0) {
+            String unitId = po.getId();
+            managerDTOList.forEach(managerDTO -> {
+                WrUseUnitPerson person = new WrUseUnitPerson();
+                person.setId(IDGenerator.getId());
+                person.setUserId(managerDTO.getUserId());
+                if (managerDTO.getUserType() != null) {
+                    person.setUserType(managerDTO.getUserType());
+                } else {
+                    person.setUserType(WrUseUnitEnum.USER_TYPE_MANAGER);
+                }
+                person.setUnitId(unitId);
+                allPersonList.add(person);
+            });
+        }
         if (personDTOList != null && personDTOList.size() != 0) {
             String unitId = po.getId();
-            List<WrUseUnitPerson> personList = new ArrayList<>();
             personDTOList.forEach(personDTO -> {
                 WrUseUnitPerson person = new WrUseUnitPerson();
                 person.setId(IDGenerator.getId());
                 person.setUserId(personDTO.getUserId());
-                person.setUserType(personDTO.getUserType());
+                if (personDTO.getUserType() != null) {
+                    person.setUserType(personDTO.getUserType());
+                } else {
+                    person.setUserType(WrUseUnitEnum.USER_TYPE_RELATED_PERSON);
+                }
                 person.setUnitId(unitId);
-                personList.add(person);
+                allPersonList.add(person);
             });
-            personService.saveBatch(personList);
         }
+
+        personService.saveBatch(allPersonList);
         return po;
     }
 
-
+    /**
+     * 递归查根节点（弃用）
+     *
+     * @param id
+     * @return
+     */
+    @Deprecated
     private String getRootId(String id) {
         WrUseUnitManager po = baseMapper.selectById(id);
-        if (po.getPid().equals("-1")) {
+        if (po.getPid().equals(TreeEnum.WR_USE_UNIT_ROOT_PID)) {
             return po.getId();
         } else {
             return getRootId(po.getPid());
@@ -127,115 +177,136 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
     }
 
     /**
+     * 从字段解析根节点
+     *
+     * @param po
+     * @return
+     */
+    @Override
+    public String getRootId(WrUseUnitManager po) {
+        String path = po.getPath();
+        if (StringUtils.isEmpty(path)) {
+            return null;
+        }
+        String[] paths = path.split("/");
+        return paths[0];
+    }
+
+    /**
      * 更新用水单位信息
-     * TODO 用水单位人员是否可能为空？是否要做类型判断？
      *
      * @param dto
      */
     @Override
     public void updateWaterUseUnit(WrUseUnitManagerDTO dto) {
-        /**
-         * 暂存旧的PID
-         * 旧的根节点
-         */
-        String oldPid = baseMapper.selectById(dto.getId()).getPid();
-        String oldRootId = getRootId(dto.getId());
-        /**
-         * 修改用水单位信息
-         */
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-            @Override
-            protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                updateOneWaterUseUnit(dto);
-            }
-        });
+        //暂存旧的PID
+        //旧的根节点
+        WrUseUnitManager oldPo = baseMapper.selectById(dto.getId());
+        String oldPid = oldPo.getPid();
+        String oldRootId = getRootId(oldPo);
+        //修改用水单位信息
+        WrUseUnitManager po = transactionTemplate.execute(transactionStatus -> updateOneWaterUseUnit(dto));
 
-        /**
-         * 新的根节点
-         */
-        String newRootId = getRootId(dto.getId());
+        //新的根节点
+        String newRootId = getRootId(po);
 
-        /**
-         * 如果父级用水单位修改
-         *      可能要修改两颗树
-         * 如果用水单位名称修改
-         *      修改本树
-         */
+        //如果父级用水单位修改 可能要修改两颗树
+        //如果用水单位名称修改 修改本树
         if (StringUtils.isNotEmpty(dto.getPid())) {
-            /**
-             * 如果父节点改变
-             */
-            if (oldPid.equals("-1")) {
-                /**
-                 * 原来是一级单位，删除旧的树
-                 */
+            //如果父节点改变
+            if (oldPid.equals(TreeEnum.WR_USE_UNIT_ROOT_PID)) {
+                //原来是一级单位，删除旧的树
                 cacheService.delWaterUseUnitTree(dto.getId());
             } else {
-                /**
-                 * 不是一级单位，找到根节点，更新原来所在树
-                 */
+                //不是一级单位，找到根节点，更新原来所在树
                 initModelCache.updateWaterUseUnitTree(oldRootId);
             }
-            /**
-             * 如果父节点更新后还在旧树，无需其他操作
-             * 如果父节点更新后不在旧树，要更新新树缓存
-             */
+            //如果父节点更新后还在旧树，无需其他操作
+            //如果父节点更新后不在旧树，要更新新树缓存
             if (!oldRootId.equals(newRootId)) {
                 initModelCache.updateWaterUseUnitTree(newRootId);
             }
 
         } else if (StringUtils.isNotEmpty(dto.getUnitName())) {
-            /**
-             * 父节点未改变，只改变了节点名
-             */
-            String rootId = getRootId(dto.getId());
-            initModelCache.updateWaterUseUnitTree(rootId);
+            //父节点未改变，只改变了节点名
+            initModelCache.updateWaterUseUnitTree(newRootId);
         }
     }
 
     @Transactional(rollbackFor = {Exception.class})
-    public void updateOneWaterUseUnit(WrUseUnitManagerDTO dto) {
+    public WrUseUnitManager updateOneWaterUseUnit(WrUseUnitManagerDTO dto) {
         WrUseUnitManager po = convert2DO(dto);
+        //如果修改父节点 根据父节点修改level和path
+        if (StringUtils.isNotEmpty(dto.getPid())) {
+            if (po.getPid().equals(TreeEnum.WR_USE_UNIT_ROOT_PID)) {
+                po.setUnitLevel(1);
+                po.setPath(po.getId());
+            } else {
+                WrUseUnitManager parent = getById(po.getPid());
+                Integer pLevel = parent.getUnitLevel();
+                String pPath = parent.getPath();
+                StringBuffer sb = new StringBuffer(pPath);
+                sb.append("/").append(po.getId());
+                po.setUnitLevel(pLevel + 1);
+                po.setPath(sb.toString());
+            }
+        }
         baseMapper.updateById(po);
 
-        /**
-         * 更新用水单位的人员列表
-         * 过滤创建人
-         */
-        List<PersonTransDTO> personDTOList = dto.getPersonList().stream().filter(personTrans -> personTrans.getUserType() != 1).collect(Collectors.toList());
+        //更新用水单位的人员列表
+        //过滤创建人
+        List<PersonTransDTO> managerDTOList = dto.getManagerList();
+        List<PersonTransDTO> personDTOList = dto.getPersonList();
+        List<PersonTransKey> allUpdatePerson = new ArrayList<>();
 
+        if (managerDTOList != null && managerDTOList.size() != 0) {
+            managerDTOList.forEach(managerDTO -> {
+                PersonTransKey key = new PersonTransKey();
+                key.setUserId(managerDTO.getUserId());
+                if (managerDTO.getUserType() != null) {
+                    key.setUserType(managerDTO.getUserType());
+                } else {
+                    key.setUserType(WrUseUnitEnum.USER_TYPE_MANAGER);
+                }
+                allUpdatePerson.add(key);
+            });
+        }
         if (personDTOList != null && personDTOList.size() != 0) {
-            /**
-             * 属于该单位的人员列表
-             * 过滤创建人
-             */
-            String unitId = po.getId();
-            QueryWrapper<WrUseUnitPerson> wrapper = new QueryWrapper();
-            wrapper.eq("UNIT_ID", unitId);
-            wrapper.ne("USER_TYPE", 1);
-            List<WrUseUnitPerson> personOldList = personService.list(wrapper);
-            /**
-             * ID TYPE做伪双主键
-             */
-            List<PersonTransDTO> personTransOldList = personOldList.stream().map(person -> new PersonTransDTO(person.getUserId(), person.getUserType())).collect(Collectors.toList());
-            Map<PersonTransDTO, WrUseUnitPerson> personTransOldMap = personOldList.stream().collect(Collectors.toMap(person -> new PersonTransDTO(person.getUserId(), person.getUserType()), person -> person));
+            personDTOList.forEach(personDTO -> {
+                PersonTransKey key = new PersonTransKey();
+                key.setUserId(personDTO.getUserId());
+                if (personDTO.getUserType() != null) {
+                    key.setUserType(personDTO.getUserType());
+                } else {
+                    key.setUserType(WrUseUnitEnum.USER_TYPE_RELATED_PERSON);
+                }
+                allUpdatePerson.add(key);
+            });
+        }
 
-            /**
-             * 过滤出要删除的人员
-             * 用伪双主键比较
-             */
-            List<WrUseUnitPerson> personDelList = personTransOldList.stream().filter(personTrans -> personDTOList.contains(personTrans) ? false : true).map(personTrans -> personTransOldMap.get(personTrans)).collect(Collectors.toList());
-            /**
-             * 获取要删除人员的主键ID
-             * 删除对应人员
-             */
-            List<String> personPKDelList = personDelList.stream().map(person -> person.getId()).collect(Collectors.toList());
+
+        if (allUpdatePerson.size() != 0) {
+            //属于该单位的人员列表
+            //过滤创建人
+            String unitId = po.getId();
+            List<WrUseUnitPerson> personOldList = personService.lambdaQuery()
+                    .eq(WrUseUnitPerson::getUnitId, unitId)
+                    .ne(WrUseUnitPerson::getUserType, WrUseUnitEnum.USER_TYPE_CREATOR)
+                    .list();
+            //ID TYPE做伪双主键
+            List<PersonTransKey> personTransOldList = personOldList.stream().map(person -> new PersonTransKey(person.getUserId(), person.getUserType())).collect(Collectors.toList());
+            Map<PersonTransKey, WrUseUnitPerson> personTransOldMap = personOldList.stream().collect(Collectors.toMap(person -> new PersonTransKey(person.getUserId(), person.getUserType()), person -> person));
+
+            //过滤出要删除的人员
+            //用伪双主键比较
+            List<WrUseUnitPerson> personDelList = personTransOldList.stream().filter(personTrans -> !allUpdatePerson.contains(personTrans)).map(personTransOldMap::get).collect(Collectors.toList());
+            //获取要删除人员的主键ID
+            //删除对应人员
+            List<String> personPKDelList = personDelList.stream().map(WrUseUnitPerson::getId).collect(Collectors.toList());
             personService.removeByIds(personPKDelList);
 
-            /**
-             * 过滤出要新增的人员
-             */
-            List<PersonTransDTO> personTransAddList = personDTOList.stream().filter(personTrans -> personTransOldList.contains(personTrans) ? false : true).collect(Collectors.toList());
+            //过滤出要新增的人员
+            List<PersonTransKey> personTransAddList = allUpdatePerson.stream().filter(personTrans -> !personTransOldList.contains(personTrans)).collect(Collectors.toList());
 
             List<WrUseUnitPerson> personAddList = new ArrayList<>();
             personTransAddList.forEach(personTrans -> {
@@ -248,85 +319,64 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
             });
             personService.saveBatch(personAddList);
         }
+
+        return getById(po.getId());
     }
 
     @Override
     public void deleteWaterUseUnitById(String id) {
-        /**
-         * 如果是一级单位，先删除缓存树，再删除数据库
-         *
-         * 如果不是，先删除数据库记录，再更新缓存树
-         */
-        String pid = baseMapper.selectById(id).getPid();
+        //如果是一级单位，先删除缓存树，再删除数据库
+        //如果不是，先删除数据库记录，再更新缓存树
+        WrUseUnitManager po = baseMapper.selectById(id);
+        String pid = po.getPid();
 
-        if (pid.equals("-1")) {
+        if (pid.equals(TreeEnum.WR_USE_UNIT_ROOT_PID)) {
             cacheService.delWaterUseUnitTree(id);
-            /**
-             * 递归删除用水单位节点及所有子节点，包含人员关系
-             */
-            transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-                @Override
-                protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                    deleteOneWaterUseUnitById(id);
-                }
-            });
+            //递归删除用水单位节点及所有子节点，包含人员关系
+            transactionTemplate.executeWithoutResult(transactionStatus -> deleteOneWaterUseUnitById(id));
         } else {
-            String rootId = getRootId(id);
-            /**
-             * 递归删除用水单位节点及所有子节点，包含人员关系
-             */
-            transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-                @Override
-                protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
-                    deleteOneWaterUseUnitById(id);
-                }
-            });
+            String rootId = getRootId(po);
+            //递归删除用水单位节点及所有子节点，包含人员关系
+            transactionTemplate.executeWithoutResult(transactionStatus -> deleteOneWaterUseUnitById(id));
             initModelCache.updateWaterUseUnitTree(rootId);
         }
     }
 
     @Transactional(rollbackFor = {Exception.class})
     public void deleteOneWaterUseUnitById(String id) {
-        /**
-         * 判断是否存在子用水单位
-         */
-        QueryWrapper<WrUseUnitManager> managerWrapper = new QueryWrapper<>();
-        managerWrapper.eq("PID", id);
-        List<WrUseUnitManager> poList = baseMapper.selectList(managerWrapper);
+        //判断是否存在子用水单位
+        List<WrUseUnitManager> poList = lambdaQuery()
+                .eq(WrUseUnitManager::getPid, id)
+                .list();
         if (poList != null && poList.size() != 0) {
             poList.forEach(sonPo -> deleteOneWaterUseUnitById(sonPo.getId()));
         }
 
-        /**
-         * 先删除属于该用水单位的人员
-         */
-        QueryWrapper<WrUseUnitPerson> wrapper = new QueryWrapper<>();
-        wrapper.eq("UNIT_ID", id);
-        personService.remove(wrapper);
-        /**
-         * 再删除该用水单位
-         */
+        //先删除属于该用水单位的人员
+        personService.lambdaUpdate().eq(WrUseUnitPerson::getUnitId, id).remove();
+        //再删除该用水单位
         baseMapper.deleteById(id);
     }
 
     @Override
-    public List<WrUseUnitManagerVO> getAllWaterUseUnitList() {
-        /**
-         * 查所有用水单位
-         */
-        List<WrUseUnitManager> managerList = baseMapper.selectList(null);
-        /**
-         * 查这些用水单位下所有人员
-         */
-        List<String> idList = managerList.stream().map(manager -> manager.getId()).collect(Collectors.toList());
-        QueryWrapper<WrUseUnitPerson> wrapper = new QueryWrapper<>();
-        wrapper.in("UNIT_ID", idList);
-        List<WrUseUnitPerson> personList = personService.list(wrapper);
-        /**
-         * 整合用水单位的人员
-         */
-        List<WrUseUnitManagerVO> voList = convert2VOList(managerList);
-        Map<String, WrUseUnitManagerVO> voMap = voList.stream().collect(Collectors.toMap(vo -> vo.getId(), vo -> vo));
+    public List<WrUseUnitManagerVO> getWaterUseUnitList(List<String> unitIds) {
+        //查一批用水单位信息
+        List<WrUseUnitManager> unitList = lambdaQuery()
+                .in(unitIds != null && unitIds.size() != 0, WrUseUnitManager::getId, unitIds)
+                .list();
+        //无用水单位 直接返回
+        if (unitList == null || unitList.size() == 0) {
+            return new ArrayList<>();
+        }
+        List<WrUseUnitManagerVO> voList = convert2VOList(unitList);
+
+        //查这些用水单位下所有人员
+        List<String> idList = unitList.stream().map(WrUseUnitManager::getId).collect(Collectors.toList());
+        List<WrUseUnitPerson> personList = personService.lambdaQuery()
+                .in(WrUseUnitPerson::getUnitId, idList)
+                .list();
+        //整合用水单位的人员
+        Map<String, WrUseUnitManagerVO> voMap = voList.stream().collect(Collectors.toMap(WrUseUnitManagerVO::getId, vo -> vo));
 
         personList.forEach(person -> {
             if (voMap.containsKey(person.getUnitId())) {
@@ -334,74 +384,92 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
                 PersonTransDTO personTrans = new PersonTransDTO();
                 personTrans.setUserId(person.getUserId());
                 personTrans.setUserType(person.getUserType());
+                //缓存获取用户名
+                String userName = cacheService.getUserName(person.getUserId());
+                personTrans.setUserName(userName);
                 vo.getPersonList().add(personTrans);
             }
         });
-        return voMap.values().stream().collect(Collectors.toList());
+        return new ArrayList<>(voMap.values());
+
     }
 
     @Override
-    public DataTableVO getWaterUseUnitPage(Integer start, Integer length, String pid, Integer state) {
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper<>();
-        if (StringUtils.isNotEmpty(pid)) {
-            wrapper.eq("PID", pid);
-        }
-        if (state != null) {
-            wrapper.eq("STATE", state);
-        }
-        wrapper.orderByAsc("CODE");
-        IPage<WrUseUnitManager> page = new Page<>(start, length);
+    public List<WrUseUnitManagerVO> getAllWaterUseUnitList() {
+        return getWaterUseUnitList(null);
+    }
 
-        baseMapper.selectPage(page, wrapper);
-        List<WrUseUnitManager> managerList = page.getRecords();
-        /**
-         * 查询上级用水单位名称
-         */
-        List<String> pIds = managerList.stream().map(po -> po.getPid()).distinct().collect(Collectors.toList());
-        List<WrUseUnitManager> parents = baseMapper.selectBatchIds(pIds);
-        Map<String, String> parentMap = parents.stream().collect(Collectors.toMap(p -> p.getId(), p -> p.getUnitName()));
-
-        /**
-         * 无数据直接返回
-         */
-        if (managerList == null || managerList.size() == 0) {
+    @Override
+    public DataTableVO getWaterUseUnitPage(Integer pageIndex, Integer pageSize, String pid, Integer state) {
+        IPage<WrUseUnitManager> page = lambdaQuery()
+                .eq(StringUtils.isNotEmpty(pid), WrUseUnitManager::getPid, pid)
+                .eq(state != null, WrUseUnitManager::getState, state)
+                .orderByAsc(WrUseUnitManager::getCode)
+                .page(new Page<>(pageIndex, pageSize));
+        List<WrUseUnitManager> unitList = page.getRecords();
+        //无数据直接返回
+        if (unitList == null || unitList.size() == 0) {
             return new DataTableVO();
         }
+        //查询上级用水单位名称
+        List<String> pIds = unitList.stream().map(WrUseUnitManager::getPid).distinct().collect(Collectors.toList());
+        List<WrUseUnitManager> parents = new ArrayList<>();
+        if (pIds.size() != 0) {
+            parents = baseMapper.selectBatchIds(pIds);
+        }
+        Map<String, String> parentMap = parents.stream().collect(Collectors.toMap(WrUseUnitManager::getId, WrUseUnitManager::getUnitName));
 
-        /**
-         * 查这些用水单位下所有人员
-         */
-        List<String> idList = managerList.stream().map(manager -> manager.getId()).collect(Collectors.toList());
-        QueryWrapper<WrUseUnitPerson> personWrapper = new QueryWrapper<>();
-        personWrapper.in("UNIT_ID", idList);
-        List<WrUseUnitPerson> personList = personService.list(personWrapper);
-        /**
-         * 整合用水单位的人员
-         */
-        List<WrUseUnitManagerVO> voList = convert2VOList(managerList);
+        // 查这些用水单位下所有人员
+        List<String> idList = unitList.stream().map(WrUseUnitManager::getId).collect(Collectors.toList());
+        List<WrUseUnitPerson> creatorList = personService.lambdaQuery().in(WrUseUnitPerson::getUnitId, idList).eq(WrUseUnitPerson::getUserType, WrUseUnitEnum.USER_TYPE_CREATOR).list();
+        List<WrUseUnitPerson> managerList = personService.lambdaQuery().in(WrUseUnitPerson::getUnitId, idList).eq(WrUseUnitPerson::getUserType, WrUseUnitEnum.USER_TYPE_MANAGER).list();
+        List<WrUseUnitPerson> personList = personService.lambdaQuery().in(WrUseUnitPerson::getUnitId, idList).eq(WrUseUnitPerson::getUserType, WrUseUnitEnum.USER_TYPE_RELATED_PERSON).list();
+        //整合用水单位的人员
+        List<WrUseUnitManagerVO> voList = convert2VOList(unitList);
         voList.forEach(vo -> {
             if (parentMap.containsKey(vo.getPid())) {
                 vo.setPunitName(parentMap.get(vo.getPid()));
             }
         });
-        Map<String, WrUseUnitManagerVO> voMap = voList.stream().collect(Collectors.toMap(vo -> vo.getId(), vo -> vo));
+        Map<String, WrUseUnitManagerVO> voMap = voList.stream().collect(Collectors.toMap(WrUseUnitManagerVO::getId, vo -> vo));
 
-        personList.forEach(person ->
-
+        creatorList.forEach(person ->
         {
             if (voMap.containsKey(person.getUnitId())) {
                 WrUseUnitManagerVO vo = voMap.get(person.getUnitId());
                 PersonTransDTO personTrans = new PersonTransDTO();
                 personTrans.setUserId(person.getUserId());
                 personTrans.setUserType(person.getUserType());
+                String userName = cacheService.getUserName(person.getUserId());
+                personTrans.setUserName(userName);
+                vo.getCreatorList().add(personTrans);
+            }
+        });
+        managerList.forEach(person ->
+        {
+            if (voMap.containsKey(person.getUnitId())) {
+                WrUseUnitManagerVO vo = voMap.get(person.getUnitId());
+                PersonTransDTO personTrans = new PersonTransDTO();
+                personTrans.setUserId(person.getUserId());
+                personTrans.setUserType(person.getUserType());
+                String userName = cacheService.getUserName(person.getUserId());
+                personTrans.setUserName(userName);
+                vo.getManagerList().add(personTrans);
+            }
+        });
+        personList.forEach(person ->
+        {
+            if (voMap.containsKey(person.getUnitId())) {
+                WrUseUnitManagerVO vo = voMap.get(person.getUnitId());
+                PersonTransDTO personTrans = new PersonTransDTO();
+                personTrans.setUserId(person.getUserId());
+                personTrans.setUserType(person.getUserType());
+                String userName = cacheService.getUserName(person.getUserId());
+                personTrans.setUserName(userName);
                 vo.getPersonList().add(personTrans);
             }
         });
-        voList = voMap.values().
-
-                stream().
-
-                collect(Collectors.toList());
+        voList = new ArrayList<>(voMap.values());
 
         DataTableVO dataTableVO = new DataTableVO();
         dataTableVO.setRecordsFiltered(page.getTotal());
@@ -419,7 +487,6 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
         if (dto.getHousesTime() != null) {
             po.setHousesTime(DateUtils.convertTimeToDate(dto.getHousesTime()));
         }
-
         return po;
     }
 
@@ -437,11 +504,10 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
 
 
     @Override
-    public List<WrUseUnitNode> getAllTreeFromCacheByIds() {
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper();
-        wrapper.eq("PID", "-1");
-        List<WrUseUnitManager> poList = baseMapper.selectList(wrapper);
-
+    public List<WrUseUnitNode> getAllTreeFromCache() {
+        List<WrUseUnitManager> poList = lambdaQuery()
+                .eq(WrUseUnitManager::getPid, TreeEnum.WR_USE_UNIT_ROOT_PID)
+                .list();
         List<WrUseUnitNode> nodeList = new ArrayList<>();
         poList.forEach(po -> {
             WrUseUnitNode node = getTreeFromCacheById(po.getId());
@@ -454,10 +520,10 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
 
     @Override
     public List<String> getUnitIdsByPid(String pid) {
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper();
-        wrapper.eq("PID", pid);
-        List<WrUseUnitManager> poList = baseMapper.selectList(wrapper);
-        return poList.stream().map(po -> po.getId()).collect(Collectors.toList());
+        List<WrUseUnitManager> poList = lambdaQuery()
+                .eq(WrUseUnitManager::getPid, pid)
+                .list();
+        return poList.stream().map(WrUseUnitManager::getId).collect(Collectors.toList());
     }
 
 
@@ -468,14 +534,11 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
 
     @Override
     public Boolean checkUniqueCode(String code) {
-        QueryWrapper<WrUseUnitManager> wrapper = new QueryWrapper();
-        wrapper.eq("CODE", code);
-        Integer count = baseMapper.selectCount(wrapper);
-        return count == 0 ? true : false;
+        Integer count = lambdaQuery().eq(StringUtils.isNotEmpty(code), WrUseUnitManager::getCode, code).count();
+        return count == 0;
     }
 
-
-    public static WrUseUnitManagerVO convert2VO(WrUseUnitManager po) {
+    protected WrUseUnitManagerVO convert2VO(WrUseUnitManager po) {
         WrUseUnitManagerVO vo = new WrUseUnitManagerVO();
         BeanUtils.copyProperties(po, vo);
         if (po.getHousesTime() != null) {
@@ -484,14 +547,16 @@ public class WrUseUnitManagerServiceImpl extends ServiceImpl<WrUseUnitManagerMap
         return vo;
     }
 
-    public static List<WrUseUnitManagerVO> convert2VOList(List<WrUseUnitManager> poList) {
+    protected List<WrUseUnitManagerVO> convert2VOList(List<WrUseUnitManager> poList) {
         List<WrUseUnitManagerVO> voList = new ArrayList<>();
+        if (poList == null || poList.size() == 0) {
+            return voList;
+        }
 
         poList.forEach(po -> {
             WrUseUnitManagerVO vo = convert2VO(po);
             voList.add(vo);
         });
-
         return voList;
     }
 

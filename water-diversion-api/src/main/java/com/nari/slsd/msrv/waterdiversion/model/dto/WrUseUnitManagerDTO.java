@@ -51,6 +51,22 @@ public class WrUseUnitManagerDTO {
     private String code;
 
     /**
+     * 创建人
+     * userId
+     * userType
+     *
+     */
+    private List<PersonTransDTO> creatorList;
+
+    /**
+     * 负责人
+     * userId
+     * userType
+     *
+     */
+    private List<PersonTransDTO> managerList;
+
+    /**
      * 用水单位人员
      * userId
      * userType

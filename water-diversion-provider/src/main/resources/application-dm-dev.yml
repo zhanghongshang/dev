@@ -1,84 +1,142 @@
-spring:
-  aop:
-    proxy-target-class: true
-    auto: true
-  datasource:
-    druid:
-      dm-promng:
-        url: jdbc:dm://114.55.61.253:9236
-        username: PROMNG
-        password: Sgwl_+2021
-        driver-class-name: dm.jdbc.driver.DmDriver
-        type: com.alibaba.druid.pool.DruidDataSource
-      db2:
-        url: jdbc:dm://114.55.61.253:9236/SLDD?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8
-        username: SLDD
-        password: Sgwl_+2021
-        driver-class-name: dm.jdbc.driver.DmDriver
-        type: com.alibaba.druid.pool.DruidDataSource
-  #    filters: stat
-  #    maxActive: 20
-  #    initialSize: 1
-  #    maxWait: 60000
-  #    minIdle: 1
-  #    timeBetweenEvictionRunsMillis: 60000
-  #    minEvictableIdleTimeMillis: 300000
-  #    validationQuery: SELECT 1
-  #    testWhileIdle: true
-  #    testOnBorrow: false
-  #    testOnReturn: false
-  #    poolPreparedStatements: true
-  #    maxOpenPreparedStatements: 20
-  http:
-    encoding:
-      force: true
-  redis:
-    url: 127.0.0.1
-    port: 6379
-    password:
-    timeout: 1000
-    jedis:
-      pool:
-        max-idle: 10
-        max-wait: -1
-mybatis:
-  type-aliases-package: com.nari.slsd.msrv.waterdiversion.model.po
-  mapper-locations: classpath*:mapper/*.xml
-  check-config-location: true
-  table:
-    auto: update
-  model:
-    pack: com.nari.slsd.msrv.waterdiversion.model.po
+#spring:
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: 127.0.0.1:8848
+#    sentinel:
+#      log:
+#        dir: D:/log/sentinel
+#  aop:
+#    proxy-target-class: true
+#    auto: true
+#  datasource:
+#    druid:
+#      dm-promng:
+#        url: jdbc:dm://114.55.61.253:9236/PROMNG?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8
+#        username: PROMNG
+#        password: Sgwl_+2021
+#        driver-class-name: dm.jdbc.driver.DmDriver
+#        type: com.alibaba.druid.pool.DruidDataSource
+#        filters: stat
+#        maxActive: 20
+#        initialSize: 1
+#        maxWait: 60000
+#        minIdle: 1
+#        timeBetweenEvictionRunsMillis: 60000
+#        minEvictableIdleTimeMillis: 300000
+#        validationQuery: SELECT 1
+#        testWhileIdle: true
+#        testOnBorrow: false
+#        testOnReturn: false
+#        poolPreparedStatements: true
+#        maxOpenPreparedStatements: 20
+#      dm-pubuser:
+#        url: jdbc:dm://114.55.61.253:9236/PUBUSER?zeroDateTimeBehavior=convertToNull&useUnicode=true&characterEncoding=utf-8
+#        username: PUBUSER
+#        password: Sgwl_+2021
+#        driver-class-name: dm.jdbc.driver.DmDriver
+#        type: com.alibaba.druid.pool.DruidDataSource
+#        filters: stat
+#        maxActive: 20
+#        initialSize: 1
+#        maxWait: 60000
+#        minIdle: 1
+#        timeBetweenEvictionRunsMillis: 60000
+#        minEvictableIdleTimeMillis: 300000
+#        validationQuery: SELECT 1
+#        testWhileIdle: true
+#        testOnBorrow: false
+#        testOnReturn: false
+#        poolPreparedStatements: true
+#        maxOpenPreparedStatements: 20
+#      oracle-wr:
+#        url: jdbc:oracle:thin:@piscn.vicp.cc:60005:ORCL
+#        username: USER_WR
+#        password: user_wr
+#        driver-class-name: oracle.jdbc.OracleDriver
+#        type: com.alibaba.druid.pool.DruidDataSource
+#        filters: stat
+#        maxActive: 20
+#        initialSize: 1
+#        maxWait: 60000
+#        minIdle: 1
+#        timeBetweenEvictionRunsMillis: 60000
+#        minEvictableIdleTimeMillis: 300000
+#        validationQuery: select 1 from dual
+#        testWhileIdle: true
+#        testOnBorrow: false
+#        testOnReturn: false
+#        poolPreparedStatements: true
+#        maxOpenPreparedStatements: 20
+#      oracle-wm:
+#        url: jdbc:oracle:thin:@piscn.vicp.cc:60005:ORCL
+#        username: USER_WM
+#        password: user_wm
+#        driver-class-name: oracle.jdbc.OracleDriver
+#        type: com.alibaba.druid.pool.DruidDataSource
+#        filters: stat
+#        maxActive: 20
+#        initialSize: 1
+#        maxWait: 60000
+#        minIdle: 1
+#        timeBetweenEvictionRunsMillis: 60000
+#        minEvictableIdleTimeMillis: 300000
+#        validationQuery: select 1 from dual
+#        testWhileIdle: true
+#        testOnBorrow: false
+#        testOnReturn: false
+#        poolPreparedStatements: true
+#        maxOpenPreparedStatements: 20
+#  http:
+#    encoding:
+#      force: true
+#  redis:
+#    url: 127.0.0.1
+#    port: 6379
+#    password:
+#    timeout: 1000
+#    jedis:
+#      pool:
+#        max-idle: 10
+#        max-wait: -1
+#mybatis:
+#  type-aliases-package: com.nari.slsd.msrv.waterdiversion.model.**.po
+#  mapper-locations: classpath*:mapper/*.xml
+#  check-config-location: true
+#  table:
+#    auto: update
+#  model:
+#    pack: com.nari.slsd.msrv.waterdiversion.model.**.po
+#
+#
+#mapper:
+#  mappers:
+#    - com.nari.slsd.msrv.waterdiversion.mapper.*
+#  not-empty: false
+#  # identity: dm
+#
+#
+#msrv:
+#  uploadPath: ./file/
+#  isDayType: false
+#  imagePath: ./image/
+#
+#logging:
+#  level:
+#    com.nari.slsd.msrv.waterdiversion.mapper: debug
+#    com.alibaba.nacos.client.config.impl: warn
+#  file:
+#    path: D:/log
+#  config: classpath:logback-spring.xml
+#
+#mybatis-plus:
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#  global-config:
+#    db-config:
+#      logic-delete-value: 1
+#      logic-not-delete-value: 0
+#
+#mpp:
+#  entityBasePath: com.nari.slsd.msrv.waterdiversion.model.third.po,com.nari.slsd.msrv.waterdiversion.model.fourth.po
 
-
-mapper:
-  mappers:
-    - com.nari.slsd.msrv.waterdiversion.mapper
-  not-empty: false
-  identity: dm
-
-
-msrv:
-  uploadPath: ./file/
-  isDayType: false
-  imagePath: ./image/
-
-logging:
-  level:
-    com.nari.slsd.msrv.waterdiversion.mapper: debug
-    com.alibaba.nacos.client.config.impl: warn
-  file:
-    path: D:/log
-  config: classpath:logback-spring.xml
-
-dataType: dm
-
-mybatis-plus:
-  configuration:
-    # 日志打印
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-  global-config:
-    db-config:
-      # 逻辑删除配置
-      logic-delete-value: 1
-      logic-not-delete-value: 0

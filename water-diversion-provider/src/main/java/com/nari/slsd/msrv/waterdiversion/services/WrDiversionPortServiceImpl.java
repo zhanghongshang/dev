@@ -1,6 +1,6 @@
 package com.nari.slsd.msrv.waterdiversion.services;
 
-import com.nari.slsd.msrv.waterdiversion.model.po.WrDiversionPort;
+import com.nari.slsd.msrv.waterdiversion.model.primary.po.WrDiversionPort;
 import com.nari.slsd.msrv.waterdiversion.mapper.primary.WrDiversionPortMapper;
 import com.nari.slsd.msrv.waterdiversion.interfaces.IWrDiversionPortService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

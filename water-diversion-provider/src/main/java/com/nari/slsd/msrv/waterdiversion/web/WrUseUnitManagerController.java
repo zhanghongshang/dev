@@ -1,12 +1,12 @@
 package com.nari.slsd.msrv.waterdiversion.web;
 
-
-import com.nari.slsd.msrv.common.model.DataTableVO;
 import com.nari.slsd.msrv.common.model.ResultCode;
 import com.nari.slsd.msrv.common.model.ResultModel;
 import com.nari.slsd.msrv.common.utils.ResultModelUtils;
 import com.nari.slsd.msrv.common.utils.StringUtils;
+import com.nari.slsd.msrv.waterdiversion.interfaces.IWaterBuildingManagerService;
 import com.nari.slsd.msrv.waterdiversion.interfaces.IWrUseUnitManagerService;
+import com.nari.slsd.msrv.waterdiversion.model.dto.WrBuildingAndDiversion;
 import com.nari.slsd.msrv.waterdiversion.model.dto.WrUseUnitManagerDTO;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitManagerVO;
 import com.nari.slsd.msrv.waterdiversion.model.vo.WrUseUnitNode;
@@ -32,6 +32,9 @@ public class WrUseUnitManagerController {
     @Resource
     IWrUseUnitManagerService waterUseUnitManagerService;
 
+    @Resource
+    IWaterBuildingManagerService waterBuildingManagerService;
+
     /**
      * 新增用水单位
      *
@@ -41,7 +44,7 @@ public class WrUseUnitManagerController {
     @PostMapping
     public ResultModel addUnit(@RequestBody WrUseUnitManagerDTO dto) {
         try {
-            waterUseUnitManagerService.addWaterUseUnit(dto);
+            waterUseUnitManagerService.saveWaterUseUnit(dto);
             return ResultModelUtils.getAddSuccessInstance(true);
         } catch (Exception e) {
             e.printStackTrace();
@@ -103,20 +106,19 @@ public class WrUseUnitManagerController {
     /**
      * 分页查询
      *
-     * @param start
-     * @param length
+     * @param pageIndex
+     * @param pageSize
      * @param pid
      * @param state
      * @return
      */
     @GetMapping("/page")
-    public ResultModel getUnit(@RequestParam(value = "start") Integer start,
-                               @RequestParam(value = "length") Integer length,
+    public ResultModel getUnit(@RequestParam(value = "pageIndex") Integer pageIndex,
+                               @RequestParam(value = "pageSize") Integer pageSize,
                                @RequestParam(value = "pid", required = false) String pid,
                                @RequestParam(value = "state", required = false) Integer state) {
         try {
-            DataTableVO tableVO = waterUseUnitManagerService.getWaterUseUnitPage(start, length, pid, state);
-            return tableVO;
+            return waterUseUnitManagerService.getWaterUseUnitPage(pageIndex, pageSize, pid, state);
         } catch (Exception e) {
             e.printStackTrace();
             return ResultModelUtils.getFailInstanceExt();
@@ -148,7 +150,7 @@ public class WrUseUnitManagerController {
     @GetMapping("/tree/all")
     public ResultModel getAllTrees() {
         try {
-            List<WrUseUnitNode> nodeList = waterUseUnitManagerService.getAllTreeFromCacheByIds();
+            List<WrUseUnitNode> nodeList = waterUseUnitManagerService.getAllTreeFromCache();
             return ResultModelUtils.getSuccessInstance(nodeList);
         } catch (Exception e) {
             e.printStackTrace();
@@ -174,9 +176,14 @@ public class WrUseUnitManagerController {
         }
     }
 
-
+    /**
+     * 用水单位编码唯一性校验
+     *
+     * @param code
+     * @return
+     */
     @GetMapping("/code")
-    public ResultModel getCode(@RequestParam("code") String code) {
+    public ResultModel codeCheck(@RequestParam("code") String code) {
         try {
             if (StringUtils.isEmpty(code)) {
                 return ResultModelUtils.getFailInstanceExt("编码不能为空");
@@ -194,16 +201,26 @@ public class WrUseUnitManagerController {
         }
     }
 
+    /**
+     * 用水单位下是否有测站引水口校验
+     *
+     * @param waterUnitIds
+     * @return
+     */
+    @GetMapping("/station-check")
+    public ResultModel stationNullCheck(@RequestParam(value = "waterUnitIds") List<String> waterUnitIds) {
+        try {
+            List<WrBuildingAndDiversion> voList = waterBuildingManagerService.getWrBuildingAndDiversionListByUnit(waterUnitIds, null, null, null);
+            if (voList == null || voList.size() == 0) {
+                return ResultModelUtils.getInstance(true, ResultCode.RESULT_SUCC.toString(), "该用水单位下无测站,校验通过");
+            } else {
+                return ResultModelUtils.getFailInstanceExt("该用水单位下有测站,校验失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultModelUtils.getFailInstanceExt();
+        }
+    }
 
-//    @GetMapping("/tree/update")
-//    public ResultModel updateTree(@RequestParam List<String> ids) {
-//        try {
-////            List<WaterUseUnitNode> nodeList = waterUseUnitManagerService.update();
-//            return ResultModelUtils.getSuccessInstance(nodeList);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResultModelUtils.getFailInstanceExt();
-//        }
-//    }
 }
 
